@@ -1,2 +1,5 @@
 data/
 phData.png
+__pycache__/
+mlruns/
+model
