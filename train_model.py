@@ -8,7 +8,7 @@ from sklearn import model_selection
 from sklearn import neighbors
 from sklearn import pipeline
 from sklearn import preprocessing
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import root_mean_squared_error
 
 
 from create_model import SALES_PATH, DEMOGRAPHICS_PATH, SALES_COLUMN_SELECTION, OUTPUT_DIR, load_data
@@ -33,13 +33,13 @@ model = pipeline.make_pipeline(preprocessing.RobustScaler(),
 
 y_pred = model.predict(x_test)
 
-mse_test = mean_squared_error(y_test, y_pred)
+mse_test = root_mean_squared_error(y_test, y_pred)
 
 # Set our tracking server uri for logging
 mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
 
 # Create a new MLflow Experiment
-mlflow.set_experiment("MLflow Quickstart")
+mlflow.set_experiment("Client Pipeline")
 
 # Start an MLflow run
 with mlflow.start_run():
@@ -47,7 +47,7 @@ with mlflow.start_run():
     mlflow.log_params(params)
 
     # Log the loss metric
-    mlflow.log_metric("MSE", mse_test)
+    mlflow.log_metric("RMSE", mse_test)
 
     # Infer the model signature
     signature = infer_signature(x_train, model.predict(x_train))
@@ -58,7 +58,7 @@ with mlflow.start_run():
         name="knn",
         signature=signature,
         input_example=x_train,
-        registered_model_name="tracking-quickstart",
+        registered_model_name="knn_client",
     )
 
 
