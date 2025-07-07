@@ -1,17 +1,16 @@
 
 import requests
+import json
 from typing import Any, Optional, Union
 from pydantic import BaseModel
 
 from fastapi import FastAPI
-
-
 import mlflow
+
 
 
 mlflow.set_tracking_uri(uri="sqlite:///mlruns.db")
 app = FastAPI()
-
 
 
 
@@ -24,7 +23,7 @@ class PredictApiData(BaseModel):
 
 
 @app.post("/predict")
-async def predict_api(data: PredictApiData):
+async def predict_api():
 
     model_name = "knn_with_imputer"
     model_version = "latest"
@@ -46,13 +45,39 @@ async def predict_api(data: PredictApiData):
         model_input_column.append(column["name"])
 
 
-    print(model_input_column)
-
-
-    payload = {}
+    payload = {"columns":[], "data": []}
     for column in model_input_column:
-        payload[column] = 0
 
-    requests.post()
+        payload["columns"].append(column)
 
-    return {"result": res}
+        payload["data"].append(0)
+
+
+    payload["data"] = [payload["data"]]
+
+    url = "http://localhost:5003/invocations"
+
+    
+    payload_formated = {}
+
+    payload_formated["dataframe_split"] = payload
+
+    print(payload_formated)
+
+    headers = {
+        "Content-Type": "application/json",
+    }
+
+    payload_json = json.dumps(payload_formated)
+
+    print(payload_json)
+
+    params = {
+       "dataframe_split" :  payload
+    }
+
+    params = json.dumps(params)
+
+    res = requests.post(url=url, data=params, headers=headers)
+
+    print(res.json())
