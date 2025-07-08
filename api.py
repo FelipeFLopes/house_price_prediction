@@ -1,43 +1,42 @@
 
 import requests
 import json
-from typing import Any, Optional, Union
+from typing import Any
 from pydantic import BaseModel
 
 from fastapi import FastAPI
 import mlflow
+import numpy as np
+import pandas as pd
 
 
+MODEL_PRED_ENDPOINT_URL = "http://localhost:5003/invocations"
+TRACKING_SERVER_URI = "sqlite:///mlruns.db"
 
-mlflow.set_tracking_uri(uri="sqlite:///mlruns.db")
+mlflow.set_tracking_uri(uri=TRACKING_SERVER_URI)
 app = FastAPI()
 
 
-
-
 class PredictApiData(BaseModel):
-    input_image: Any
-    model_name: str
+    model_name: Any
+    model_version: str
+    dataframe_records: list[dict]
+
 
 
 
 
 @app.post("/predict")
-async def predict_api():
+def predict_api(data: PredictApiData):
 
-    model_name = "knn_with_imputer"
-    model_version = "latest"
-
+    model_name = data.model_name
+    model_version = data.model_version
     model_uri = f"models:/{model_name}/{model_version}"
 
 
     model_info = mlflow.models.get_model_info(model_uri)
-
     signature = model_info.signature
-
-
     model_inputs_schema = signature.inputs.to_dict()
-
 
     model_input_column = []
     for column in model_inputs_schema:
@@ -45,39 +44,33 @@ async def predict_api():
         model_input_column.append(column["name"])
 
 
-    payload = {"columns":[], "data": []}
-    for column in model_input_column:
 
-        payload["columns"].append(column)
+    input = pd.DataFrame.from_records(data.dataframe_records)
+    columns_dataset = input.columns.values
 
-        payload["data"].append(0)
+    columns_missing_input_dataset = set(model_input_column) - set(columns_dataset)
 
 
-    payload["data"] = [payload["data"]]
+    for column_missing in columns_missing_input_dataset:
+        input[column_missing] = np.nan
 
-    url = "http://localhost:5003/invocations"
+    dataframe_with_missing_columns = input.to_dict("split")
 
-    
-    payload_formated = {}
 
-    payload_formated["dataframe_split"] = payload
+    payload = {"columns": dataframe_with_missing_columns["columns"], "data": dataframe_with_missing_columns["data"]}
 
-    print(payload_formated)
 
     headers = {
         "Content-Type": "application/json",
     }
 
-    payload_json = json.dumps(payload_formated)
-
-    print(payload_json)
-
     params = {
        "dataframe_split" :  payload
     }
-
     params = json.dumps(params)
 
-    res = requests.post(url=url, data=params, headers=headers)
 
-    print(res.json())
+    res = requests.post(url=MODEL_PRED_ENDPOINT_URL, data=params, headers=headers)
+
+
+    return res.json()
