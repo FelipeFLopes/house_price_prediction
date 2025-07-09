@@ -5,18 +5,31 @@ import pandas as pd
 
 
 PREDICTION_API_ENDPOINT = "http://127.0.0.1:8000/predict"
+PREDICTION_API_SUBSET_ENDPOINT = "http://127.0.0.1:8000/predict_from_subset"
 
-COLUMNS = ['sqft_lot', 'floors', 'sqft_living', 'sqft_basement', 'bathrooms', 'bedrooms', 'sqft_above']
+BASE_MODEL_NAME = "knn_with_imputer"
+SUBSET_MODEL_NAME = "knn_min_columns"
 
 
-path_unseen_data = "data/future_unseen_examples.csv"
+def test_predict_endpoint(url, model_name, model_version):
 
-dataset = pd.read_csv(path_unseen_data)
+    COLUMNS = ['sqft_lot', 'floors', 'sqft_living', 'sqft_basement', 'bathrooms', 'bedrooms', 'sqft_above']
 
-data = dataset[COLUMNS].to_dict(orient="records")
+    path_unseen_data = "data/future_unseen_examples.csv"
 
-payload = {"model_name":"knn_with_imputer", "model_version": "latest", "dataframe_records": data}
+    dataset = pd.read_csv(path_unseen_data)
 
-res = requests.post(url=PREDICTION_API_ENDPOINT, data=json.dumps(payload))
+    data = dataset[COLUMNS].to_dict(orient="records")
 
-print(res.json())
+    payload = {"model_name":model_name, "model_version": model_version, "dataframe_records": data}
+
+    res = requests.post(url=url, data=json.dumps(payload))
+
+    return res.json()
+
+
+if __name__ == "__main__":
+
+    res = test_predict_endpoint(url=PREDICTION_API_SUBSET_ENDPOINT, model_name=SUBSET_MODEL_NAME, model_version="latest")
+
+    print(res)
