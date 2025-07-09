@@ -16,8 +16,11 @@ sales_demographic_data, target = load_data(SALES_PATH, DEMOGRAPHICS_PATH, SALES_
 
 
 x, y = load_data(SALES_PATH, DEMOGRAPHICS_PATH, SALES_COLUMN_SELECTION)
+
+x_minimal = x[['sqft_above', 'floors', 'sqft_basement', 'bathrooms', 'bedrooms', 'sqft_lot', 'sqft_living']]
+
 x_train, x_test, y_train, y_test = model_selection.train_test_split(
-    x, y, random_state=42)
+    x_minimal, y, random_state=42)
 
 
 params = {}
@@ -49,9 +52,6 @@ mlflow.set_tracking_uri(uri="sqlite:///mlruns.db")
 mlflow.set_experiment("Client base model")
 
 
-
-
-
 with mlflow.start_run():
 
     mlflow.log_params(params)
@@ -74,5 +74,5 @@ with mlflow.start_run():
         name="knn",
         signature=signature,
         input_example=x_train,
-        registered_model_name="knn_with_imputer",
+        registered_model_name="knn_min_columns",
     )
